@@ -1,78 +1,96 @@
 package com.example.gui_fts_en_223s_pro3_s27236_intellijidea;
 
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.MenuItem;
 import javafx.stage.Stage;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
+import java.util.Random;
 
-public class Controller implements Initializable {
+class Controller {
 
-    private Stage stage; // Reference to the stage
-    private String dictionaryDirectory; // Directory path for the dictionary files
-    private List<String> dictionary; // Holds the loaded dictionary words
+    private Stage stage;
+    private String dictionaryDirectory;
+    private List<String> dictionary;
+    private View view;
+    private String currentWord;
+    private int currentIndex;
 
-    public void setStage(Stage stage) {
+    public Controller(Stage stage, String dictionaryDirectory, View view) {
         this.stage = stage;
-    }
-
-    public void setDictionaryDirectory(String dictionaryDirectory) {
         this.dictionaryDirectory = dictionaryDirectory;
+        this.view = view;
+        loadDictionary();
+        displayRandomWord();
     }
 
-    public List<String> getDictionary() {
-        return dictionary;
-    }
+    public void handleKeyPressed(String key) {
+        if (currentWord == null) {
+            return;
+        }
 
-    public void setDictionary(List<String> dictionary) {
-        this.dictionary = dictionary;
-    }
+        String userInput = view.getUserInput();
 
-    @FXML
-    public void onLanguageMenuItemClick(ActionEvent event) {
-        MenuItem menuItem = (MenuItem) event.getSource();
-        String languageName = menuItem.getText();
-        loadDictionary(languageName);
-        System.out.println("Language selected: " + languageName);
-    }
-
-    private void loadDictionary(String languageName) {
-        // Construct the file path based on the selected language name
-        String filePath = dictionaryDirectory + "/" + languageName + ".txt";
-
-        try {
-            File file = new File(filePath);
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            dictionary = new ArrayList<>();
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                dictionary.add(line);
+        if (userInput.length() < currentWord.length()) {
+            char currentChar = currentWord.charAt(userInput.length());
+            if (key.equals(String.valueOf(currentChar))) {
+                view.setCharacterHighlighting(userInput.length(), userInput);
+            } else {
+                view.setCharacterHighlighting(userInput.length(), userInput);
             }
-
-            reader.close();
-
-            // Test: Print the loaded words
-            System.out.println("Dictionary for " + languageName + ":");
-            for (String word : dictionary) {
-                System.out.println(word);
-            }
-        } catch (IOException e) {
-            System.out.println("Error loading dictionary: " + e.getMessage());
+        } else {
+            view.setCharacterHighlighting(userInput.length(), userInput);
         }
     }
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        // Initialization code here
+    public void handleSpaceKeyPressed() {
+        if (currentWord == null) {
+            return;
+        }
+
+        String userInput = view.getUserInput();
+
+        if (userInput.equals(currentWord)) {
+            // Word completed, display a new word
+            view.clearUserInput();
+            displayRandomWord();
+        }
+    }
+
+    private void loadDictionary() {
+        dictionary = new ArrayList<>();
+        File directory = new File(dictionaryDirectory);
+        if (directory.isDirectory()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                dictionary.add(line);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void displayRandomWord() {
+        if (dictionary.isEmpty()) {
+            return;
+        }
+
+        Random random = new Random();
+        int index = random.nextInt(dictionary.size());
+        currentWord = dictionary.get(index);
+        currentIndex = 0;
+        view.updateInputButtons(currentWord.length());
     }
 }

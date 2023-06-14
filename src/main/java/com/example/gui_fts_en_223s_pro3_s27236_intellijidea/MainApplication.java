@@ -1,23 +1,41 @@
 package com.example.gui_fts_en_223s_pro3_s27236_intellijidea;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
-import java.io.IOException;
 
-public class HelloApplication extends Application {
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("Hello!");
-        stage.setScene(scene);
-        stage.show();
-    }
+public class MainApplication extends Application {
+
+    private static final String DICTIONARY_DIRECTORY = "dictionary";
 
     public static void main(String[] args) {
-        launch();
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Typing Test");
+        primaryStage.setResizable(false);
+
+        // Create the main layout container
+        BorderPane root = new BorderPane();
+        View view = new View(root);
+        Controller controller = new Controller(primaryStage, DICTIONARY_DIRECTORY, view);
+
+        // Create the scene and set it to the stage
+        Scene scene = new Scene(root, 800, 600);
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.SPACE) {
+                controller.handleSpaceKeyPressed();
+            } else {
+                controller.handleKeyPressed(event.getText());
+            }
+        });
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 }
