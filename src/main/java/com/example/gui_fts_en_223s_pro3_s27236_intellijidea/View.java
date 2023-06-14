@@ -1,77 +1,58 @@
 package com.example.gui_fts_en_223s_pro3_s27236_intellijidea;
 
 import javafx.geometry.Pos;
-import javafx.scene.control.*;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.text.Font;
-import java.util.ArrayList;
+
 import java.util.List;
 
-class View {
+public class View {
+
     private BorderPane root;
-    private HBox inputBox;
-    private List<Button> inputButtons;
-    private StringBuilder userInput;
+    private MenuBar menuBar;
+    private Controller controller;
+
+    private Label wordLabel;
 
     public View(BorderPane root) {
         this.root = root;
         initialize();
-        userInput = new StringBuilder();
     }
 
-    public void updateInputButtons(int length) {
-        if (inputButtons.size() < length) {
-            for (int i = inputButtons.size(); i < length; i++) {
-                Button button = new Button();
-                button.setMinSize(30, 30);
-                button.setMaxSize(30, 30);
-                button.setStyle("-fx-background-color: gray;");
-                button.setFont(Font.font(16));
-                inputButtons.add(button);
-                inputBox.getChildren().add(button);
-            }
-        } else if (inputButtons.size() > length) {
-            for (int i = inputButtons.size() - 1; i >= length; i--) {
-                Button button = inputButtons.remove(i);
-                inputBox.getChildren().remove(button);
-            }
-        }
-    }
-
-    public void setCharacterHighlighting(int currentIndex, String userInput) {
-        for (int i = 0; i < inputButtons.size(); i++) {
-            Button button = inputButtons.get(i);
-            if (i < currentIndex) {
-                button.setStyle("-fx-background-color: green;");
-            } else if (i == currentIndex) {
-                button.setStyle("-fx-background-color: yellow;");
-            } else if (i < userInput.length() && button.getText().equals(String.valueOf(userInput.charAt(i)))) {
-                button.setStyle("-fx-background-color: green;");
-            } else if (i < userInput.length()) {
-                button.setStyle("-fx-background-color: red;");
-            } else {
-                button.setStyle("-fx-background-color: gray;");
-            }
-        }
-    }
-
-    public String getUserInput() {
-        return userInput.toString();
-    }
-
-    public void clearUserInput() {
-        userInput.setLength(0);
+    public void setWords(List<String> words) {
+        String wordsText = String.join(" ", words);
+        wordLabel.setText(wordsText);
     }
 
     private void initialize() {
-        // Create the input box
-        inputBox = new HBox();
-        inputBox.setAlignment(Pos.CENTER);
-        inputBox.setSpacing(10);
-        inputButtons = new ArrayList<>();
+        // Create menu bar
+        menuBar = new MenuBar();
+        Menu languageMenu = new Menu("Language");
+        Menu timeMenu = new Menu("Test Time");
 
-        // Add the input box to the root pane
-        root.setCenter(inputBox);
+        // Add menu items to menu bar
+        menuBar.getMenus().addAll(languageMenu, timeMenu);
+
+        // Create footer
+        Label footerLabel = new Label("Keyboard Shortcuts: Tab+Enter = Restart Test, " +
+                "Ctrl+Shift+P = Pause, Esc = End Test");
+        footerLabel.setAlignment(Pos.CENTER);
+
+        // Set the word label in the center of the root
+        root.setCenter(wordLabel);
+        root.setTop(menuBar);
+        root.setBottom(footerLabel);
+    }
+
+    public void setController(Controller controller) {
+        this.controller = controller;
+    }
+
+    public void addLanguageMenuItem(String languageName, MenuItem menuItem) {
+        Menu languageMenu = (Menu) menuBar.getMenus().get(0);
+        languageMenu.getItems().add(menuItem);
     }
 }

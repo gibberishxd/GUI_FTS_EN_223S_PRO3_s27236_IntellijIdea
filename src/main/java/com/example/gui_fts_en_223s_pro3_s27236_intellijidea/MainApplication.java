@@ -2,11 +2,8 @@ package com.example.gui_fts_en_223s_pro3_s27236_intellijidea;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-
 
 public class MainApplication extends Application {
 
@@ -28,13 +25,6 @@ public class MainApplication extends Application {
 
         // Create the scene and set it to the stage
         Scene scene = new Scene(root, 800, 600);
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.SPACE) {
-                controller.handleSpaceKeyPressed();
-            } else {
-                controller.handleKeyPressed(event.getText());
-            }
-        });
         primaryStage.setScene(scene);
         primaryStage.show();
     }
