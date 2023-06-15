@@ -23,6 +23,8 @@ public class MainApplication extends Application {
         View view = new View(root);
         Controller controller = new Controller(primaryStage, DICTIONARY_DIRECTORY, view);
 
+        view.setController(controller);
+
         // Create the scene and set it to the stage
         Scene scene = new Scene(root, 800, 600);
         primaryStage.setScene(scene);

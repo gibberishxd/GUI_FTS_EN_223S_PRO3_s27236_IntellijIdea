@@ -12,9 +12,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
-import javafx.scene.control.TextField;
 
-
+import java.util.ArrayList;
 import java.util.List;
 
 public class View {
@@ -29,8 +28,7 @@ public class View {
     private Controller controller;
     private int time;
     private TextFlow wordTextFlow;
-    private TextField inputTextField;
-    private String typedText = "";
+    private StringBuilder typedText = new StringBuilder();
 
     public View(BorderPane root) {
         this.root = root;
@@ -58,15 +56,14 @@ public class View {
         }
     }
 
+    private String getCharacterStyle(char ch, boolean isLastCharacter) {
+        String input = typedText.toString();
 
-    private String getCharacterStyle(char ch, boolean isFirstCharacter) {
-        String input = inputTextField.getText();
-
-        if (isFirstCharacter) {
+        if (isLastCharacter) {
             return CHARACTER_DEFAULT_STYLE;
-        } else if (!input.isEmpty() && ch == input.charAt(0)) {
+        } else if (!input.isEmpty() && ch == input.charAt(input.length() - 1)) {
             return CHARACTER_CORRECT_STYLE;
-        } else if (!input.isEmpty() && ch != input.charAt(0)) {
+        } else if (!input.isEmpty() && ch != input.charAt(input.length() - 1)) {
             return CHARACTER_INCORRECT_STYLE;
         } else if (input.isEmpty() && !Character.isWhitespace(ch)) {
             return CHARACTER_EMPTY_STYLE;
@@ -74,6 +71,7 @@ public class View {
             return CHARACTER_UNKNOWN_STYLE;
         }
     }
+
 
 
     private void initialize() {
@@ -85,16 +83,6 @@ public class View {
         wordTextFlow = new TextFlow();
         wordTextFlow.setStyle("-fx-font-size: 15px;");
         wordTextFlow.setTextAlignment(TextAlignment.CENTER);
-
-        inputTextField = new TextField();
-        inputTextField.setStyle("-fx-font-size: 15px;");
-        inputTextField.setPrefWidth(800);
-        inputTextField.setPrefHeight(40);
-        inputTextField.setAlignment(Pos.CENTER);
-        inputTextField.setStyle("-fx-opacity: 0;");
-
-        VBox vbox = new VBox(wordTextFlow, inputTextField);
-        vbox.setAlignment(Pos.CENTER);
 
         // Add menu items to menu bar
         menuBar.getMenus().addAll(languageMenu, timeMenu);
@@ -123,13 +111,14 @@ public class View {
         footerLabel.setAlignment(Pos.CENTER);
 
         // Set the word text flow in the center of the root
+        VBox vbox = new VBox(wordTextFlow);
         root.setCenter(vbox);
         root.setTop(menuBar);
         root.setBottom(footerLabel);
 
         // Add event handlers for user input
-        inputTextField.setOnKeyPressed(this::handleKeyPressed);
-        inputTextField.setOnKeyTyped(this::handleKeyTyped);
+        root.setOnKeyPressed(this::handleKeyPressed);
+        root.setOnKeyTyped(this::handleKeyTyped);
     }
 
     public void setController(Controller controller) {
@@ -144,21 +133,14 @@ public class View {
         KeyCode keyCode = event.getCode();
 
         if (keyCode == KeyCode.BACK_SPACE) {
-            if (inputTextField.getCaretPosition() > 0) {
-                inputTextField.deletePreviousChar();
-                handleInput();
-                updateWordTextFlow();
+            if (typedText.length() > 0) {
+                typedText.deleteCharAt(typedText.length() - 1);
             }
-            event.consume();
         } else if (keyCode == KeyCode.ENTER) {
             handleInput();
-            event.consume();
-        } else if (keyCode == KeyCode.ESCAPE) {
-            // Handle ESC key press (end test)
-            // ...
-        } else if (keyCode == KeyCode.TAB && event.isShiftDown()) {
-            // Handle Shift+TAB key press (restart test)
-            // ...
+        } else if (keyCode == KeyCode.SPACE) {
+            handleInput();
+            typedText.setLength(0); // Clear the typed text for the next word
         } else {
             return; // Ignore other key presses
         }
@@ -167,35 +149,54 @@ public class View {
         event.consume();
     }
 
+
     private void handleKeyTyped(KeyEvent event) {
         String inputText = event.getCharacter();
-        typedText += inputText;
-        inputTextField.setText("");
 
-        handleInput();
-        updateWordTextFlow();
+        if (!inputText.isEmpty()) {
+            typedText.append(inputText);
+            handleInput();
+            updateWordTextFlow();
+        }
+
         event.consume();
     }
 
 
     private void handleInput() {
-        String inputText = inputTextField.getText();
+        String inputText = typedText.toString();
         // Process the user input, compare with the expected word, etc.
-        // ...
+
+        // Get the expected word from the controller
+        String expectedWord = controller.getExpectedWord();
+
+        if (inputText.equals(expectedWord)) {
+            // User input matches the expected word
+            // Perform actions for correct input
+            controller.handleCorrectInput();
+        } else {
+            // User input does not match the expected word
+            // Perform actions for incorrect input
+            controller.handleIncorrectInput();
+        }
+
+        // Clear the typed text for the next word
+        typedText.setLength(0);
     }
 
-
     private void updateWordTextFlow() {
-        String input = typedText + inputTextField.getText();
+        String input = typedText.toString();
         wordTextFlow.getChildren().clear(); // Clear the existing content
 
         int wordsPerLine = 10; // Change this to the desired number of words per line
         int characterCount = 0;
+        int inputLength = input.length();
+        int remainingWordsIndex = controller.getCurrentWordIndex() + 1;
 
-        for (int i = 0; i < input.length(); i++) {
+        for (int i = 0; i < inputLength; i++) {
             char ch = input.charAt(i);
             Text characterText = new Text(String.valueOf(ch));
-            characterText.setStyle(getCharacterStyle(ch, i == typedText.length()));
+            characterText.setStyle(getCharacterStyle(ch, i == inputLength - 1));
             wordTextFlow.getChildren().add(characterText);
             characterCount++;
 
@@ -206,9 +207,24 @@ public class View {
             }
         }
 
-        for (int i = input.length(); i < wordTextFlow.getChildren().size(); i++) {
-            Text characterText = (Text) wordTextFlow.getChildren().get(i);
-            characterText.setStyle(getCharacterStyle(characterText.getText().charAt(0), false));
+        List<String> remainingWords = new ArrayList<>();
+        if (remainingWordsIndex < controller.getDictionary().size()) {
+            remainingWords = controller.getDictionary().subList(remainingWordsIndex, controller.getDictionary().size());
+        }
+
+        for (String word : remainingWords) {
+            for (int i = 0; i < word.length(); i++) {
+                Text characterText = new Text(String.valueOf(word.charAt(i)));
+                characterText.setStyle(CHARACTER_UNKNOWN_STYLE);
+                wordTextFlow.getChildren().add(characterText);
+                characterCount++;
+
+                if (characterCount % wordsPerLine == 0) {
+                    wordTextFlow.getChildren().add(new Text("\n"));
+                } else {
+                    wordTextFlow.getChildren().add(new Text(" "));
+                }
+            }
         }
     }
 

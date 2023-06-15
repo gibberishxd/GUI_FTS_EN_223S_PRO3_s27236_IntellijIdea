@@ -18,6 +18,7 @@ public class Controller {
     private String dictionaryDirectory; // Directory path for the dictionary files
     private List<String> dictionary; // Holds the loaded dictionary words
     private View view;
+    private int currentWordIndex = 0;
 
     public Controller(Stage stage, String dictionaryDirectory, View view) {
         this.stage = stage;
@@ -27,6 +28,14 @@ public class Controller {
         stage.setTitle("Typing Test");
         stage.setResizable(false);
         populateLanguageMenu();
+    }
+
+    public List<String> getDictionary() {
+        return dictionary;
+    }
+
+    public int getCurrentWordIndex() {
+        return currentWordIndex;
     }
 
     private void populateLanguageMenu() {
@@ -41,6 +50,34 @@ public class Controller {
                 languageMenuItem.setOnAction(this::onLanguageMenuItemClick);
                 view.addLanguageMenuItem(languageName, languageMenuItem);
             }
+        }
+    }
+
+    public String getExpectedWord() {
+        if (dictionary != null && !dictionary.isEmpty()) {
+            if (currentWordIndex < dictionary.size()) {
+                return dictionary.get(currentWordIndex);
+            }
+        }
+        return ""; // Return an empty string if there are no more words in the dictionary
+    }
+
+    public void handleCorrectInput() {
+        currentWordIndex++;
+        displayNextWord();
+    }
+
+    public void handleIncorrectInput() {
+        // Perform actions for incorrect input
+    }
+
+    private void displayNextWord() {
+        if (dictionary != null && !dictionary.isEmpty()) {
+            List<String> nextWord = new ArrayList<>();
+            if (currentWordIndex < dictionary.size()) {
+                nextWord.add(dictionary.get(currentWordIndex));
+            }
+            view.setWords(nextWord); // Call the method in the View class to update the word display
         }
     }
 
