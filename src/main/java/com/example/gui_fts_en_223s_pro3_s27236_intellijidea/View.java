@@ -8,24 +8,29 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.text.TextFlow;
+import javafx.scene.control.TextField;
+
 
 import java.util.List;
 
 public class View {
 
+    private static final String CHARACTER_DEFAULT_STYLE = "-fx-fill: black;";
+    private static final String CHARACTER_CORRECT_STYLE = "-fx-fill: green;";
+    private static final String CHARACTER_INCORRECT_STYLE = "-fx-fill: red;";
+    private static final String CHARACTER_UNKNOWN_STYLE = "-fx-fill: orange;";
+    private static final String CHARACTER_EMPTY_STYLE = "-fx-fill: gray;";
     private BorderPane root;
     private MenuBar menuBar;
     private Controller controller;
     private int time;
-
     private TextFlow wordTextFlow;
-    private StringBuilder inputBuffer;
+    private TextField inputTextField;
+    private String typedText = "";
 
     public View(BorderPane root) {
         this.root = root;
@@ -41,7 +46,7 @@ public class View {
 
             for (int j = 0; j < word.length(); j++) {
                 Text characterText = new Text(String.valueOf(word.charAt(j)));
-                characterText.setFill(getCharacterColor(word.charAt(j), i == 0 && j == 0));
+                characterText.setStyle(getCharacterStyle(word.charAt(j), i == 0 && j == 0));
                 wordTextFlow.getChildren().add(characterText);
             }
 
@@ -54,19 +59,22 @@ public class View {
     }
 
 
-    private Color getCharacterColor(char ch, boolean isFirstCharacter) {
+    private String getCharacterStyle(char ch, boolean isFirstCharacter) {
+        String input = inputTextField.getText();
+
         if (isFirstCharacter) {
-            return Color.BLACK;
-        } else if (inputBuffer.length() >= 1 && ch == inputBuffer.charAt(0)) {
-            return Color.GREEN;
-        } else if (inputBuffer.length() >= 1 && ch != inputBuffer.charAt(0)) {
-            return Color.RED;
-        } else if (inputBuffer.length() < 1 && !Character.isWhitespace(ch)) {
-            return Color.GRAY;
+            return CHARACTER_DEFAULT_STYLE;
+        } else if (!input.isEmpty() && ch == input.charAt(0)) {
+            return CHARACTER_CORRECT_STYLE;
+        } else if (!input.isEmpty() && ch != input.charAt(0)) {
+            return CHARACTER_INCORRECT_STYLE;
+        } else if (input.isEmpty() && !Character.isWhitespace(ch)) {
+            return CHARACTER_EMPTY_STYLE;
         } else {
-            return Color.ORANGE;
+            return CHARACTER_UNKNOWN_STYLE;
         }
     }
+
 
     private void initialize() {
         // Create menu bar
@@ -76,15 +84,17 @@ public class View {
 
         wordTextFlow = new TextFlow();
         wordTextFlow.setStyle("-fx-font-size: 15px;");
-        wordTextFlow.setLineSpacing(10);
-        wordTextFlow.setPrefWidth(800);
-        wordTextFlow.setPrefHeight(200);
         wordTextFlow.setTextAlignment(TextAlignment.CENTER);
 
-        VBox vbox = new VBox(wordTextFlow);
-        vbox.setAlignment(Pos.CENTER);
+        inputTextField = new TextField();
+        inputTextField.setStyle("-fx-font-size: 15px;");
+        inputTextField.setPrefWidth(800);
+        inputTextField.setPrefHeight(40);
+        inputTextField.setAlignment(Pos.CENTER);
+        inputTextField.setStyle("-fx-opacity: 0;");
 
-        inputBuffer = new StringBuilder();
+        VBox vbox = new VBox(wordTextFlow, inputTextField);
+        vbox.setAlignment(Pos.CENTER);
 
         // Add menu items to menu bar
         menuBar.getMenus().addAll(languageMenu, timeMenu);
@@ -118,7 +128,8 @@ public class View {
         root.setBottom(footerLabel);
 
         // Add event handlers for user input
-        root.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
+        inputTextField.setOnKeyPressed(this::handleKeyPressed);
+        inputTextField.setOnKeyTyped(this::handleKeyTyped);
     }
 
     public void setController(Controller controller) {
@@ -132,10 +143,22 @@ public class View {
     private void handleKeyPressed(KeyEvent event) {
         KeyCode keyCode = event.getCode();
 
-        if (keyCode == KeyCode.BACK_SPACE && inputBuffer.length() > 0) {
-            inputBuffer.deleteCharAt(inputBuffer.length() - 1);
-        } else if (keyCode.isLetterKey()) {
-            inputBuffer.append(event.getText().charAt(0));
+        if (keyCode == KeyCode.BACK_SPACE) {
+            if (inputTextField.getCaretPosition() > 0) {
+                inputTextField.deletePreviousChar();
+                handleInput();
+                updateWordTextFlow();
+            }
+            event.consume();
+        } else if (keyCode == KeyCode.ENTER) {
+            handleInput();
+            event.consume();
+        } else if (keyCode == KeyCode.ESCAPE) {
+            // Handle ESC key press (end test)
+            // ...
+        } else if (keyCode == KeyCode.TAB && event.isShiftDown()) {
+            // Handle Shift+TAB key press (restart test)
+            // ...
         } else {
             return; // Ignore other key presses
         }
@@ -144,27 +167,52 @@ public class View {
         event.consume();
     }
 
+    private void handleKeyTyped(KeyEvent event) {
+        String inputText = event.getCharacter();
+        typedText += inputText;
+        inputTextField.setText("");
+
+        handleInput();
+        updateWordTextFlow();
+        event.consume();
+    }
+
+
+    private void handleInput() {
+        String inputText = inputTextField.getText();
+        // Process the user input, compare with the expected word, etc.
+        // ...
+    }
+
+
     private void updateWordTextFlow() {
-        String input = inputBuffer.toString();
+        String input = typedText + inputTextField.getText();
         wordTextFlow.getChildren().clear(); // Clear the existing content
 
         int wordsPerLine = 10; // Change this to the desired number of words per line
+        int characterCount = 0;
+
         for (int i = 0; i < input.length(); i++) {
             char ch = input.charAt(i);
             Text characterText = new Text(String.valueOf(ch));
-            characterText.setFill(getCharacterColor(ch, i == 0));
+            characterText.setStyle(getCharacterStyle(ch, i == typedText.length()));
             wordTextFlow.getChildren().add(characterText);
-        }
+            characterCount++;
 
-        if (input.length() > 0 && Character.isWhitespace(input.charAt(input.length() - 1))) {
-            wordTextFlow.getChildren().add(new Text(" "));
+            if (characterCount % wordsPerLine == 0) {
+                wordTextFlow.getChildren().add(new Text("\n"));
+            } else {
+                wordTextFlow.getChildren().add(new Text(" "));
+            }
         }
 
         for (int i = input.length(); i < wordTextFlow.getChildren().size(); i++) {
             Text characterText = (Text) wordTextFlow.getChildren().get(i);
-            characterText.setFill(getCharacterColor(characterText.getText().charAt(0), false));
+            characterText.setStyle(getCharacterStyle(characterText.getText().charAt(0), false));
         }
     }
+
+
 
     public void addLanguageMenuItem(String languageName, MenuItem menuItem) {
         Menu languageMenu = (Menu) menuBar.getMenus().get(0);
