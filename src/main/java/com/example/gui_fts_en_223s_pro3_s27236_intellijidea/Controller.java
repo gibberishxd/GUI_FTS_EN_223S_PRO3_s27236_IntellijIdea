@@ -52,6 +52,7 @@ public class Controller {
         displayRandomWords(); // Call the method to display a random word
     }
 
+
     private void loadDictionary(String languageName) {
         String filePath = dictionaryDirectory + "/" + languageName + ".txt";
 
@@ -80,7 +81,7 @@ public class Controller {
     private void displayRandomWords() {
         if (dictionary != null && !dictionary.isEmpty()) {
             Random random = new Random();
-            int numWords = 5; // Change this to the desired number of words to display
+            int numWords = 30; // Change this to the desired number of words to display
             List<String> randomWords = new ArrayList<>();
 
             for (int i = 0; i < numWords; i++) {
